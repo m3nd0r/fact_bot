@@ -1,0 +1,11 @@
+services:
+
+  bot:
+    container_name: fact-bot
+    image: fact-bot
+    build: .
+    env_file:
+      - ./.env
+    volumes:
+      - ./:/bot
+    command: uv run main.py
