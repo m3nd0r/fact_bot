@@ -1,15 +1,17 @@
 """High‑level APScheduler job implementation."""
+
 from __future__ import annotations
 
 from assistant import get_fact
-from telegram import send_message, send_photo
-from unsplash import get_image
-from utils import format_fact_message, extract_title_en
 from logger import logger
+from telegram_helpers import send_message, send_photo
+from unsplash import get_image
+from utils import extract_title_en, format_fact_message
 
 
 def daily_fact_job() -> None:
     """Fetch a fact and deliver it to Telegram once a day."""
+
     logger.info("Requesting fact from OpenAI Assistant …")
     fact = get_fact()
     if not fact:

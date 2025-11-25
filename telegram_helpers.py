@@ -1,4 +1,5 @@
 """Telegram‑related helper functions."""
+
 from __future__ import annotations
 
 import requests
@@ -10,7 +11,8 @@ API_ROOT = f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}"
 
 
 def post_request(method: str, payload: dict) -> bool:
-    """Send a JSON POST request to the Telegram Bot API.
+    """
+    Send a JSON POST request to the Telegram Bot API.
 
     Parameters
     ----------
@@ -39,6 +41,7 @@ def post_request(method: str, payload: dict) -> bool:
 
 def send_message(text: str) -> None:
     """Send a plain text message (HTML parse mode) to the configured chat."""
+
     payload = {
         "chat_id": settings.TELEGRAM_CHAT_ID,
         "text": text,
@@ -50,6 +53,7 @@ def send_message(text: str) -> None:
 
 def send_photo(photo_url: str, caption: str) -> None:
     """Send a photo with a caption (HTML parse mode) to the configured chat."""
+
     payload = {
         "chat_id": settings.TELEGRAM_CHAT_ID,
         "photo": photo_url,
@@ -58,3 +62,16 @@ def send_photo(photo_url: str, caption: str) -> None:
     }
     if post_request("sendPhoto", payload):
         logger.info("Photo sent to Telegram chat %s", settings.TELEGRAM_CHAT_ID)
+
+
+def send_animation(animation_url: str, caption: str) -> None:
+    """Send a GIF animation with a caption (HTML parse mode) to the configured chat."""
+
+    payload = {
+        "chat_id": settings.TELEGRAM_CHAT_ID,
+        "animation": animation_url,
+        "caption": caption,
+        "parse_mode": "HTML",
+    }
+    if post_request("sendAnimation", payload):
+        logger.info("Animation sent to Telegram chat %s", settings.TELEGRAM_CHAT_ID)

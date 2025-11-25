@@ -1,14 +1,17 @@
 """CLI entry‑point: schedule the daily job and start the scheduler."""
+
 import signal
+
 from apscheduler.schedulers.blocking import BlockingScheduler
 
-from jobs import daily_fact_job
 from config import settings
+from jobs import daily_fact_job
 from logger import logger
 
 
 def _graceful_shutdown(signum, frame):  # noqa: D401, D403 (simple handler)
     """Stop the scheduler without waiting for running jobs when a signal is received."""
+
     logger.info("Signal %s received — shutting down scheduler …", signum)
     scheduler.shutdown(wait=False)
 

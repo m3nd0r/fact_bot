@@ -16,7 +16,7 @@ ENV PYTHONUNBUFFERED=1 \
 RUN pip install uv
 
 WORKDIR $PYSETUP_PATH
-COPY pyproject.toml ./
+COPY pyproject.toml uv.lock ./
 
 # Install dependencie
 RUN uv sync --frozen

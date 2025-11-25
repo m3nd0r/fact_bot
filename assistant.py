@@ -1,9 +1,10 @@
 """All OpenAI Assistant interaction logic lives here."""
+
 from __future__ import annotations
 
+import asyncio
 import json
-import time
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional, Tuple
 
 import openai
 
@@ -13,46 +14,81 @@ from logger import logger
 openai.api_key = settings.OPENAI_API_KEY
 
 
-def get_fact() -> Optional[Dict[str, Any]]:
+async def run_assistant_async(
+    assistant_id: str,
+    prompt: str,
+    *,
+    thread_id: str | None = None,
+) -> Tuple[str, str]:
     """
-    Request an interesting fact from the OpenAI Assistant and return it as a dictionary.
-    Important: the assistant should be prepared to respond to the prompt in the `.env` file.
+    Send prompt to assistant_id and return (reply, thread_id).
 
-    The assistant is expected to respond with a JSON string like
-    `{ "title": "…", "fact": "…", "title_en": "…" }`.
-
-    Returns
-    -------
-    Optional[Dict[str, Any]]
-        The parsed dictionary or ``None`` if something went wrong.
+    If thread_id is None a new thread is created. The caller can persist
+    the returned thread_id to keep memory between messages.
     """
-    thread = openai.beta.threads.create()
 
-    openai.beta.threads.messages.create(
-        thread_id=thread.id,
+    if thread_id is None:
+        thread_obj = await asyncio.to_thread(openai.beta.threads.create)
+        thread_id = thread_obj.id
+        logger.debug("Created new thread %s for assistant %s", thread_id, assistant_id)
+
+    # Add user message
+    await asyncio.to_thread(
+        openai.beta.threads.messages.create,
+        thread_id=thread_id,
         role="user",
-        content=settings.AGENT_PROMPT,
-    )
-    run = openai.beta.threads.runs.create(
-        thread_id=thread.id,
-        assistant_id=settings.ASSISTANT_ID,
+        content=prompt,
     )
 
-    # Poll until the assistant has finished processing
+    # Run the assistant
+    run = await asyncio.to_thread(
+        openai.beta.threads.runs.create,
+        thread_id=thread_id,
+        assistant_id=assistant_id,
+    )
+
+    # Wait for completion
     while True:
-        status = openai.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
+        status = await asyncio.to_thread(
+            openai.beta.threads.runs.retrieve,
+            thread_id=thread_id,
+            run_id=run.id,
+        )
         if status.status == "completed":
             break
-        time.sleep(1)
+        await asyncio.sleep(1)
 
-    messages = openai.beta.threads.messages.list(thread_id=thread.id)
-    for message in messages.data:
-        if message.role == "assistant":
-            raw = message.content[0].text.value
-            try:
-                return json.loads(raw)
-            except json.JSONDecodeError:
-                logger.error("Failed to parse assistant response as JSON. Raw: %s", raw)
-                return None
-    logger.error("Assistant response not found in thread messages.")
-    return None
+    # Extract assistant reply
+    messages = await asyncio.to_thread(openai.beta.threads.messages.list, thread_id=thread_id)
+    for msg in messages.data:
+        if msg.role == "assistant":
+            return msg.content[0].text.value.strip(), thread_id
+
+    logger.error("Assistant produced no reply in thread %s", thread_id)
+    return "(no reply)", thread_id
+
+
+def run_assistant(
+    assistant_id: str,
+    prompt: str,
+    *,
+    thread_id: Optional[str] = None,
+) -> Tuple[str, str]:
+    """Synchronous wrapper around run_assistant_async."""
+    return asyncio.run(
+        run_assistant_async(
+            assistant_id=assistant_id,
+            prompt=prompt,
+            thread_id=thread_id,
+        )
+    )
+
+
+def get_fact() -> Optional[Dict[str, Any]]:
+    """Return JSON dict with daily fact using settings.ASSISTANT_ID."""
+    text, _ = run_assistant(settings.ASSISTANT_ID, settings.AGENT_PROMPT)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        logger.error("Failed to parse assistant daily fact JSON: %s", text)
+        return None

@@ -5,10 +5,12 @@ A Telegram bot that sends daily interesting facts with images. The bot uses Open
 ## Features
 
 - 🤖 Automated daily fact delivery via Telegram
+- 💬 Interactive chat mode - trigger the bot with keywords, mentions, or replies
 - 🧠 AI-powered fact generation using OpenAI Assistant
 - 🖼️ Automatic image search and attachment using Unsplash
 - ⏰ Configurable sending time
 - 📝 Structured fact format with title and content
+- 👤 Personalized greetings with custom name mappings
 
 ## Prerequisites
 
@@ -31,6 +33,7 @@ Before running the bot, you need to:
 # OpenAI Configuration
 OPENAI_API_KEY=your_openai_api_key_here
 ASSISTANT_ID=your_assistant_id_here
+LISTENER_ASSISTANT_ID=your_listener_assistant_id_here
 
 # Telegram Configuration
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
@@ -42,12 +45,16 @@ UNSPLASH_API_KEY=your_unsplash_api_key_here
 # Sending Schedule (optional, defaults to 13:00)
 SEND_TIME_HOUR=13
 SEND_TIME_MINUTE=0
+
+# Listener Configuration (optional)
+LISTENER_TRIGGERS=bot,hey
+ID_TO_NAME=123456789:Alice,987654321:Bob
 ```
 
 ### Required Variables
 
 - `OPENAI_API_KEY` - Your OpenAI API key
-- `ASSISTANT_ID` - ID of your OpenAI Assistant (see setup instructions below)
+- `ASSISTANT_ID` - ID of your OpenAI Assistant for fact generation (see setup instructions below)
 - `TELEGRAM_BOT_TOKEN` - Token from your Telegram bot (get from @BotFather)
 - `TELEGRAM_CHAT_ID` - Chat ID where facts will be sent
 - `UNSPLASH_API_KEY` - Your Unsplash API key
@@ -58,6 +65,9 @@ SEND_TIME_MINUTE=0
 
 - `SEND_TIME_HOUR` - Hour to send facts (0-23, default: 13)
 - `SEND_TIME_MINUTE` - Minute to send facts (0-59, default: 0)
+- `LISTENER_ASSISTANT_ID` - ID of OpenAI Assistant for interactive chat (enables chat mode)
+- `LISTENER_TRIGGERS` - Comma-separated trigger words that activate the bot (e.g., `bot,hey`)
+- `ID_TO_NAME` - User ID to name mapping for personalized responses (format: `user_id:Name,user_id:Name`)
 
 ## Setup Instructions
 
@@ -114,6 +124,16 @@ The bot will:
 3. Include relevant images when available
 4. Handle graceful shutdown on Ctrl+C
 
+### Interactive Chat Mode
+
+If you set `LISTENER_ASSISTANT_ID`, the bot will also listen to messages in the configured chat. You can trigger the bot by:
+
+- **Using trigger words** - Any word from `LISTENER_TRIGGERS` (e.g., "bot", "hey")
+- **Mentioning the bot** - Using `@bot_username` in your message
+- **Replying to the bot** - Replying to any of the bot's messages
+
+The bot maintains separate conversation threads for each user and can use custom names if configured via `ID_TO_NAME`.
+
 ## Docker
 
 You can also run the bot using Docker:
@@ -126,10 +146,12 @@ docker-compose up -d
 
 - `main.py` - Entry point and scheduler setup
 - `jobs.py` - Daily fact job implementation
+- `listener.py` - Interactive chat listener
 - `assistant.py` - OpenAI Assistant interaction
-- `telegram.py` - Telegram bot messaging
+- `telegram_helpers.py` - Telegram bot messaging
 - `unsplash.py` - Image search functionality
 - `config.py` - Environment configuration
+- `store.py` - Redis storage for conversation threads
 - `utils.py` - Utility functions
 - `logger.py` - Logging setup
 

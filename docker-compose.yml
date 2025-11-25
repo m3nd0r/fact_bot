@@ -1,11 +1,32 @@
 services:
-
-  bot:
-    container_name: fact-bot
+  bot-jobs:
+    container_name: fact-bot-jobs
     image: fact-bot
     build: .
     env_file:
       - ./.env
     volumes:
       - ./:/bot
+    depends_on:
+      - redis
     command: uv run main.py
+
+  bot-listener:
+    container_name: fact-bot-listener
+    image: fact-bot
+    env_file:
+      - ./.env
+    volumes:
+      - ./:/bot
+    depends_on:
+      - redis
+    command: uv run listener.py
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:
